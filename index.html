@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva de Posadas & Apartados</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background: #f4f7f6; color: #333; padding-bottom: 40px; }
+
+        header { background: #005f73; color: white; padding: 20px 15px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        header h1 { font-size: 22px; }
+        header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+
+        .container { max-width: 1100px; margin: 20px auto; padding: 0 12px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+
+        @media (min-width: 850px) {
+            .container { grid-template-columns: 2fr 1fr; }
+        }
+
+        /* Tarjetas de Habitaciones / Casas */
+        .grid-posadas { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
+        .card-posada { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; border: 2px solid transparent; transition: 0.2s; }
+        .card-posada.seleccionada { border-color: #0a9396; background: #e8f8f5; }
+        .card-posada img { width: 100%; height: 160px; object-fit: cover; }
+        .info-posada { padding: 12px; }
+        .info-posada h3 { font-size: 16px; color: #005f73; margin-bottom: 6px; }
+        .info-posada p { font-size: 13px; color: #666; margin-bottom: 8px; line-height: 1.3; }
+        .precio-tag { font-size: 15px; font-weight: bold; color: #2a9d8f; margin-bottom: 10px; }
+        .btn-seleccionar { background: #0a9396; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        /* Panel de Reserva */
+        .panel-reserva { background: white; border-radius: 10px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); height: fit-content; }
+        .panel-reserva h3 { border-bottom: 2px solid #e9ecef; padding-bottom: 10px; margin-bottom: 12px; color: #005f73; font-size: 18px; }
+
+        label { font-size: 12px; font-weight: bold; color: #495057; display: block; margin-top: 10px; }
+        input, select { width: 100%; padding: 9px; margin-top: 4px; border-radius: 6px; border: 1px solid #ced4da; font-size: 14px; }
+
+        /* Desglose de Pagos */
+        .resumen-pago { background: #e9d8a6; background-opacity: 0.3; background: #fff8e7; padding: 12px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #ee9b00; }
+        .resumen-linea { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+        .resumen-linea.total { font-weight: bold; font-size: 15px; color: #005f73; border-top: 1px solid #ddd; padding-top: 6px; margin-top: 6px; }
+        .resumen-linea.apartado { font-weight: bold; font-size: 15px; color: #ca6702; }
+
+        .btn-whatsapp { background: #25d366; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 15px; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🏡 Reserva de Posadas</h1>
+        <p>Selecciona tu hospedaje, fechas y aparta tu estancia vía WhatsApp</p>
+    </header>
+
+    <div class="container">
+        <!-- CATÁLOGO DE OPCIONES -->
+        <div>
+            <!-- Configuración Número de Recepción -->
+            <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 12px;">
+                <label>Número de WhatsApp para recibir reservas (con código de país):</label>
+                <input type="text" id="telefono-posada" value="584120000000" placeholder="Ej: 584120000000">
+            </div>
+
+            <h3 style="margin-bottom: 12px; color: #005f73;">Opciones Disponibles</h3>
+            <div class="grid-posadas" id="grid-posadas"></div>
+        </div>
+
+        <!-- FORMULARIO Y CALCULADORA DE APARTADO -->
+        <div class="panel-reserva" id="modulo-reserva">
+            <h3>📅 Detalles de la Reserva</h3>
+
+            <label>Alojamiento Seleccionado:</label>
+            <input type="text" id="r-posada" readonly placeholder="Toca 'Reservar' en una posada" style="background: #e9ecef; font-weight: bold;">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                    <label>Check-In (Entrada):</label>
+                    <input type="date" id="r-in" onchange="calcularReserva()">
+                </div>
+                <div>
+                    <label>Check-Out (Salida):</label>
+                    <input type="date" id="r-out" onchange="calcularReserva()">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                    <label>Nº de Huéspedes:</label>
+                    <input type="number" id="r-huespedes" value="2" min="1" onchange="calcularReserva()">
+                </div>
+                <div>
+                    <label>Porcentaje Apartado:</label>
+                    <select id="r-pct-apartado" onchange="calcularReserva()">
+                        <option value="50">50% del total</option>
+                        <option value="100">100% (Pago Completo)</option>
+                        <option value="30">30% del total</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- DESGLOSE DE PRECIOS -->
+            <div class="resumen-pago">
+                <div class="resumen-linea">
+                    <span>Noches:</span>
+                    <strong id="lbl-noches">0</strong>
+                </div>
+                <div class="resumen-linea">
+                    <span>Precio por noche:</span>
+                    <strong id="lbl-precio-noche">$0.00</strong>
+                </div>
+                <div class="resumen-linea total">
+                    <span>Total Estancia:</span>
+                    <strong id="lbl-total">$0.00</strong>
+                </div>
+                <div class="resumen-linea apartado">
+                    <span>Monto para Apartar:</span>
+                    <strong id="lbl-apartado">$0.00</strong>
+                </div>
+            </div>
+
+            <!-- DATOS DEL CLIENTE -->
+            <label>Nombre Completo del Titular:</label>
+            <input type="text" id="c-nombre" placeholder="Ej: Maria Delgado">
+
+            <label>Cédula / Documento de Identidad:</label>
+            <input type="text" id="c-doc" placeholder="Ej: V-18234567">
+
+            <label>Método para pagar el apartado:</label>
+            <select id="c-pago">
+                <option value="Pago Móvil">Pago Móvil</option>
+                <option value="Efectivo / Divisas en Sitio">Efectivo / Divisas</option>
+                <option value="Zelle">Zelle</option>
+                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+            </select>
+
+            <button class="btn-whatsapp" onclick="enviarReservaWhatsApp()">
+                📱 Solicitar Apartado por WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const posadas = [
+            {
+                id: 1,
+                nombre: "Cabaña Vista al Mar",
+                capacidad: 4,
+                precioNoche: 60,
+                desc: "1 Habitación matrimonial, 1 litera, aire acondicionado, piscina y Wi-Fi.",
+                img: "https://via.placeholder.com/300x160/005f73/ffffff?text=Cabana+Vista+al+Mar"
+            },
+            {
+                id: 2,
+                nombre: "Suite Ejecutiva / Pareja",
+                capacidad: 2,
+                precioNoche: 45,
+                desc: "Cama King, jacuzzi privado, cocina equipada y vista al jardín.",
+                img: "https://via.placeholder.com/300x160/0a9396/ffffff?text=Suite+Ejecutiva"
+            },
+            {
+                id: 3,
+                nombre: "Chalet Familiar Grande",
+                capacidad: 8,
+                precioNoche: 120,
+                desc: "3 Habitaciones, parrilla privada, estacionamiento para 3 carros.",
+                img: "https://via.placeholder.com/300x160/ca6702/ffffff?text=Chalet+Familiar"
+            }
+        ];
+
+        let seleccionada = null;
+        let calculoActual = { noches: 0, total: 0, apartado: 0 };
+
+        function renderPosadas() {
+            const grid = document.getElementById('grid-posadas');
+            grid.innerHTML = '';
+
+            posadas.forEach(p => {
+                const esSel = seleccionada && seleccionada.id === p.id;
+                grid.innerHTML += `
+                    <div class="card-posada ${esSel ? 'seleccionada' : ''}">
+                        <div>
+                            <img src="${p.img}" alt="${p.nombre}">
+                            <div class="info-posada">
+                                <h3>${p.nombre}</h3>
+                                <p>${p.desc}</p>
+                                <p style="font-size: 12px; font-weight: bold; color: #555;">👥 Capacidad máx: ${p.capacidad} personas</p>
+                                <div class="precio-tag">$${p.precioNoche} / noche</div>
+                            </div>
+                        </div>
+                        <div style="padding: 12px; padding-top: 0;">
+                            <button class="btn-seleccionar" onclick="seleccionarPosada(${p.id})">
+                                ${esSel ? '✓ Seleccionada' : 'Reservar Esta'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function seleccionarPosada(id) {
+            seleccionada = posadas.find(p => p.id === id);
+            document.getElementById('r-posada').value = seleccionada.nombre;
+            renderPosadas();
+            calcularReserva();
+
+            // Mover pantalla al formulario en móviles
+            if (window.innerWidth < 850) {
+                document.getElementById('modulo-reserva').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function calcularReserva() {
+            if (!seleccionada) return;
+
+            const dateIn = new Date(document.getElementById('r-in').value);
+            const dateOut = new Date(document.getElementById('r-out').value);
+            const pctApartado = parseFloat(document.getElementById('r-pct-apartado').value) / 100;
+
+            if (isNaN(dateIn) || isNaN(dateOut) || dateOut <= dateIn) {
+                document.getElementById('lbl-noches').innerText = "0";
+                document.getElementById('lbl-precio-noche').innerText = `$${seleccionada.precioNoche.toFixed(2)}`;
+                document.getElementById('lbl-total').innerText = "$0.00";
+                document.getElementById('lbl-apartado').innerText = "$0.00";
+                calculoActual = { noches: 0, total: 0, apartado: 0 };
+                return;
+            }
+
+            // Cálculo de noches por diferencia de milisegundos
+            const diffTime = Math.abs(dateOut - dateIn);
+            const noches = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const total = noches * seleccionada.precioNoche;
+            const apartado = total * pctApartado;
+
+            calculoActual = { noches, total, apartado };
+
+            document.getElementById('lbl-noches').innerText = noches;
+            document.getElementById('lbl-precio-noche').innerText = `$${seleccionada.precioNoche.toFixed(2)}`;
+            document.getElementById('lbl-total').innerText = `$${total.toFixed(2)}`;
+            document.getElementById('lbl-apartado').innerText = `$${apartado.toFixed(2)}`;
+        }
+
+        function enviarReservaWhatsApp() {
+            const numTelefono = document.getElementById('telefono-posada').value.trim();
+            const cliente = document.getElementById('c-nombre').value.trim();
+            const doc = document.getElementById('c-doc').value.trim();
+            const huespedes = document.getElementById('r-huespedes').value;
+            const checkIn = document.getElementById('r-in').value;
+            const checkOut = document.getElementById('r-out').value;
+            const pago = document.getElementById('c-pago').value;
+            const pctApartado = document.getElementById('r-pct-apartado').value;
+
+            if (!seleccionada) {
+                alert('Por favor selecciona una posada o cabaña.');
+                return;
+            }
+
+            if (!checkIn || !checkOut || calculoActual.noches <= 0) {
+                alert('Selecciona fechas válidas de Check-In y Check-Out.');
+                return;
+            }
+
+            if (parseInt(huespedes) > seleccionada.capacidad) {
+                alert(`Atención: La capacidad máxima para ${seleccionada.nombre} es de ${seleccionada.capacidad} personas.`);
+                return;
+            }
+
+            if (!cliente || !doc) {
+                alert('Ingresa el nombre completo y documento de identidad del titular.');
+                return;
+            }
+
+            // Construcción del Mensaje
+            let msg = `*SOLICITUD DE APARTADO / RESERVA*\n`;
+            msg += `-----------------------------------\n`;
+            msg += `🏡 *Alojamiento:* ${seleccionada.nombre}\n`;
+            msg += `📅 *Check-In:* ${checkIn}\n`;
+            msg += `📅 *Check-Out:* ${checkOut} (${calculoActual.noches} noche/s)\n`;
+            msg += `👥 *Huéspedes:* ${huespedes} personas\n`;
+            msg += `-----------------------------------\n`;
+            msg += `👤 *Titular:* ${cliente}\n`;
+            msg += `🪪 *Documento:* ${doc}\n`;
+            msg += `-----------------------------------\n`;
+            msg += `💰 *Costo Total:* $${calculoActual.total.toFixed(2)}\n`;
+            msg += `📌 *Monto para Apartar (${pctApartado}%):* $${calculoActual.apartado.toFixed(2)}\n`;
+            msg += `💳 *Método de Pago Preferido:* ${pago}\n`;
+            msg += `-----------------------------------\n`;
+            msg += `_Solicito los datos bancarios para realizar el pago del apartado y confirmar mi reserva._`;
+
+            const url = `https://wa.me/${numTelefono}?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+
+        // Fecha por defecto: Hoy y mañana
+        const hoy = new Date();
+        const manana = new Date();
+        manana.setDate(hoy.getDate() + 1);
+
+        document.getElementById('r-in').value = hoy.toISOString().split('T')[0];
+        document.getElementById('r-out').value = manana.toISOString().split('T')[0];
+
+        renderPosadas();
+    </script>
+</body>
+</html>
